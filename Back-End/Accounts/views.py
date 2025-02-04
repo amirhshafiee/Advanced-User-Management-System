@@ -1,8 +1,9 @@
+from django.core.handlers.base import reset_urlconf
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializers, LoginSerializers, ProfileSerializers
+from .serializers import RegisterSerializers, LoginSerializers, ProfileSerializers, PasswordResetSerializers
 from .models import CustomUser
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
@@ -67,3 +68,22 @@ class ProfileView(APIView):
             ser_data.save()
             return redirect('user-page:profile-page')
         return Response(data=ser_data.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetView(APIView):
+    permission_classes = [IsAuthenticated, ]
+
+    def post(self, request):
+        ser_data = PasswordResetSerializers(data= request.data)
+        if ser_data.is_valid():
+            user = CustomUser.objects.filter(email= request.user.email).first()
+            if not user.check_password(ser_data.validated_data['password']):
+                return Response(data= {
+                    'Error': 'Old must password not correct!',
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user.set_password(ser_data.validated_data['new_password'])
+            user.save()
+            return redirect('user-page:profile-page')
+
+        return Response(data= ser_data.errors, status=status.HTTP_400_BAD_REQUEST)
