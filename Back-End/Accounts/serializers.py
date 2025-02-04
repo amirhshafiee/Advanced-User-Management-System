@@ -22,3 +22,13 @@ class RegisterSerializers(serializers.ModelSerializer):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError('passwords must be match ...')
         return attrs
+
+
+class LoginSerializers(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only= True)
+
+class ProfileSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['name', 'email', 'phone_number', 'register_time']

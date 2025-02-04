@@ -10,7 +10,7 @@ class CustomUserAdmin(admin.ModelAdmin):
             "fields": ("name", "email", "phone_number")
         }),
         ("Permissions", {
-            "fields": ("is_admin", "is_staff", "is_superuser", "is_active",  'groups',
+            "fields": ("is_active", "is_admin", "is_staff", "is_superuser",  'groups',
                 'user_permissions')
         }),
         ("Important dates", {
