@@ -7,7 +7,8 @@ from .serializers import RegisterSerializers, LoginSerializers, ProfileSerialize
 from .models import CustomUser
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import redirect
+from Admin.models import UserActivityLog
+
 
 class RegisterView(APIView):
     def post(self, request):
@@ -15,6 +16,8 @@ class RegisterView(APIView):
         if ser_data.is_valid():
             user = ser_data.create(ser_data.validated_data)
             refresh_token = RefreshToken.for_user(user)
+            UserActivityLog.objects.create(user= user, action= 'Register')
+
             return Response(data= {
                 'Access Token': str(refresh_token.access_token),
                 'Refresh Token': str(refresh_token),
@@ -33,6 +36,7 @@ class LoginView(APIView):
                 user = CustomUser.objects.filter(email= username).first()
             else:
                 user = CustomUser.objects.filter(phone_number= password).first()
+
             if not user:
                 return Response(data= {
                     'Error': 'Email/Phone_number is not valid ...'
@@ -41,6 +45,9 @@ class LoginView(APIView):
                 return Response(data={
                     'Error': 'Password is not valid ...'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            UserActivityLog.objects.create(user= user, action= 'Login')
+
             refresh_token = RefreshToken.for_user(user)
 
             user.last_login = datetime.now()
@@ -54,19 +61,36 @@ class LoginView(APIView):
         return Response(data=ser_data.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
+
+class LoginRefreshView(APIView):
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({"Error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            return Response({
+                "Access Token": str(refresh.access_token),
+                "Refresh Token": str(refresh),
+
+            })
+        except Exception:
+            return Response({"Error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated, ]
     def get(self, request):
-        user = CustomUser.objects.filter(email= request.user.email).first()
+        user = request.user
         ser_data = ProfileSerializers(instance= user)
         return Response(data= ser_data.data, status=status.HTTP_200_OK)
 
     def patch(self, request):
-        user = CustomUser.objects.filter(email= request.user.email).first()
+        user = request.user
         ser_data = ProfileSerializers(instance= user, data= request.data, partial= True)
         if ser_data.is_valid():
             ser_data.save()
-            return redirect('user-page:profile-page')
+            return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
         return Response(data=ser_data.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -78,12 +102,50 @@ class PasswordResetView(APIView):
         if ser_data.is_valid():
             user = CustomUser.objects.filter(email= request.user.email).first()
             if not user.check_password(ser_data.validated_data['password']):
-                return Response(data= {
-                    'Error': 'Old must password not correct!',
+                return Response(data={
+                    'Error': 'Incorrect credentials',
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             user.set_password(ser_data.validated_data['new_password'])
+
             user.save()
-            return redirect('user-page:profile-page')
+
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                try:
+                    refresh = RefreshToken(refresh_token)
+                    refresh.blacklist()
+                except Exception:
+                    return Response({"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+            return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
+
 
         return Response(data= ser_data.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LogoutView(APIView):
+    def post(self, request):
+        delete = request.data.get('delete')
+        refresh = request.data.get('refresh')
+        if not refresh:
+            return Response({"Error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not delete:
+            return Response(data= {
+                'Error': 'please set delete value ... '
+            }, status= status.HTTP_400_BAD_REQUEST)
+
+        if delete == 'True':
+            user = CustomUser.objects.filter(email= request.user.email).first()
+            UserActivityLog.objects.create(user= user, action= 'Logout')
+            try:
+                token = RefreshToken(refresh)
+                token.blacklist()
+                return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
+            except Exception:
+                return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(data={
+                'Error': 'Logout FAILED !!!! '
+            }, status=status.HTTP_400_BAD_REQUEST)

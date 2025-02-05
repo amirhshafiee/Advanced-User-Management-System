@@ -42,7 +42,7 @@ class PasswordResetSerializers(serializers.Serializer):
 
     def validate(self, datas):
         if datas['new_password'] != datas['confirm_new_password']:
-            raise serializers.ValidationError('passwords must be match ...')
+            raise serializers.ValidationError('Incorrect credentials')
 
         password = datas['new_password']
         if re.match(r'^\d*$', password) or re.match(r'^\D*$', password):
