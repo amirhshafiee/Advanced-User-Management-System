@@ -16,6 +16,7 @@ class CustomUserManager(BaseUserManager):
         user.is_active = True
         user.save(using= self._db)
 
+
         return user
 
     def create_superuser(self, email, phone_number, password, name, **kwargs):

@@ -18,9 +18,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name', 'phone_number', ]
 
-    def update_user(self):
-        self.is_admin = True
-        self.save()
 
     def __str__(self):
         return self.email
