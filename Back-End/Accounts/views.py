@@ -1,30 +1,96 @@
+from django.conf import settings
 from django.core.handlers.base import reset_urlconf
+from django.template.context_processors import request
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializers, LoginSerializers, ProfileSerializers, PasswordResetSerializers
-from .models import CustomUser
+from .models import CustomUser, EmailOTP
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
 from Admin.models import UserActivityLog
+import random
+from django.core.mail import send_mail
 
+class SendOTPAgainView(APIView):
+    def post(self, request):
+        email = request.data.get('eamil')
+        otp = random.randint(100000, 999999)
+        EmailOTP.objects.filter(email=email).first().delete()
+        EmailOTP.objects.create(email=email, otp=otp)
+
+        send_mail(
+            'Email Verify',
+            f'Your verification code: {otp}',
+            settings.EMAIL_HOST_USER,
+            [email, ],
+            fail_silently=False,
+        )
+
+        return Response(data={
+            'Message': 'Verification code sent to email.',
+        }, status=status.HTTP_200_OK)
+
+class VerifyOTPView(APIView):
+    def post(self, request):
+        otp = request.data.get('otp')
+        #del request.data['otp']
+
+        ser_data = RegisterSerializers(data= request.data)
+        if ser_data.is_valid():
+            email = EmailOTP.objects.filter(email= ser_data.validated_data['email']).first()
+
+            if not email.is_valid():
+                return Response(data= {
+                    'Message': 'The verification code has expired!',
+                }, status= status.HTTP_400_BAD_REQUEST)
+
+            if email.otp != otp:
+                return Response(data= {
+                    'Message': 'The verification code is wrong!',
+                }, status= status.HTTP_400_BAD_REQUEST)
+
+            user = ser_data.create(ser_data.validated_data)
+            refresh_token = RefreshToken.for_user(user)
+            UserActivityLog.objects.create(user=user, action='Register')
+
+            email.delete()
+            return Response(data={
+                'Access Token': str(refresh_token.access_token),
+                'Refresh Token': str(refresh_token),
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(data=ser_data.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterView(APIView):
     def post(self, request):
         ser_data = RegisterSerializers(data= request.data)
         if ser_data.is_valid():
-            user = ser_data.create(ser_data.validated_data)
-            refresh_token = RefreshToken.for_user(user)
-            UserActivityLog.objects.create(user= user, action= 'Register')
+            if EmailOTP.objects.filter(email= ser_data.validated_data['email']).first() != None and EmailOTP.objects.filter(email=ser_data.validated_data['email']).first().is_valid():
+                return Response(data= {
+                    'Message': 'Email already send it please wait !'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            otp = random.randint(100000, 999999)
+            EmailOTP.objects.create(email=ser_data.validated_data['email'], otp=otp)
+
+            send_mail(
+                'Email Verify',
+                f'Your verification code: {otp}',
+                settings.EMAIL_HOST_USER,
+                [ser_data.validated_data['email'], ],
+                fail_silently=False,
+            )
 
             return Response(data= {
-                'Access Token': str(refresh_token.access_token),
-                'Refresh Token': str(refresh_token),
-            }, status=status.HTTP_201_CREATED)
+                'Message': 'Verification code sent to email.',
+            }, status= status.HTTP_200_OK)
 
         return Response(data= ser_data.errors,
                         status= status.HTTP_400_BAD_REQUEST)
+
 class LoginView(APIView):
     def post(self, request):
         ser_data = LoginSerializers(data= request.data)
@@ -61,7 +127,6 @@ class LoginView(APIView):
         return Response(data=ser_data.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-
 class LoginRefreshView(APIView):
     def post(self, request):
         refresh_token = request.data.get('refresh')
@@ -92,7 +157,6 @@ class ProfileView(APIView):
             ser_data.save()
             return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
         return Response(data=ser_data.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class PasswordResetView(APIView):
     permission_classes = [IsAuthenticated, ]

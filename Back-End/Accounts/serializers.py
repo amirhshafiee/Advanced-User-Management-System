@@ -51,3 +51,13 @@ class PasswordResetSerializers(serializers.Serializer):
             raise serializers.ValidationError('Password must be at least 10 characters long.')
 
         return datas
+
+class ForgetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=100)
+
+    def validate(self, datas):
+        user = CustomUser.objects.filter(email= datas['email'])
+        if not user:
+            raise serializers.ValidationError('Email is not correct ... ')
+
+        return datas

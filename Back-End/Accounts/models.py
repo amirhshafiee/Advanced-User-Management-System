@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from .managers import CustomUserManager
-
+from django.utils.timezone import now
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=20)
@@ -21,3 +21,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class EmailOTP(models.Model):
+    email = models.EmailField(unique=True)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        return (now() - self.created_at).seconds < 300
