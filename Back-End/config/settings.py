@@ -144,6 +144,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
 # for email functionality
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

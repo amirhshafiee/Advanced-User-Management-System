@@ -1,114 +1,67 @@
 from django.test import TestCase
-from Accounts.models import CustomUser
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+from Accounts.models import CustomUser, EmailOTP
+from django.core.mail import outbox
+import random
 
-
-class ViewTestRegisterUrl(TestCase):
-    def test_password(self):
-        R_data = {
-            'name': 'kevin',
-            'email': 'kevin@mail.com',
-            'phone_number': '1234',
-            'password': '123456789',
-            'confirm_password': '1234',
+class AccountsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user_data = {
+            "email": "test@example.com",
+            "name": "testuser",
+            "password": "Test@1234",
+            "phone_number": "09123456789",
         }
-        T_data = {
-            'name': 'amir',
-            'email': 'amir@mail.com',
-            'phone_number': '123',
-            'password': '123456789amir',
-            'confirm_password': '123456789amir',
+        self.user = CustomUser.objects.create_user(**self.user_data)
+        self.otp = random.randint(100000, 999999)
+        EmailOTP.objects.create(email=self.user.email, otp=self.otp)
+        self.login_url = reverse("user-page:login-page")
+        self.register_url = reverse("user-page:register-page")
+        self.verify_register_url = reverse("user-page:verify-otp-page")
+        self.profile_url = reverse("user-page:profile-page")
+
+    def test_register_user(self):
+        user_data = {
+            "email": "test@example.com",
+            "name": "testuser",
+            "password": "Test@1234",
+            "confirm_password": "Test@1234",
+            "phone_number": "09123456789",
         }
+        response = self.client.post(self.register_url, user_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Message", response.data)
+        self.assertEqual(len(outbox), 1)  # Check email was sent
 
-        response = self.client.post('/user/register/', data= R_data)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(len(usrs), 0)
+    def test_verify_register_otp(self):
+        data = {"email": self.user.email, "otp": self.otp}
+        response = self.client.post(self.verify_register_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("Access Token", response.data)
+        self.assertIn("Refresh Token", response.data)
 
-        response = self.client.post('/user/register/', data=T_data)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(usrs), 1)
+    def test_login_valid_user(self):
+        data = {"username": self.user.email, "password": self.user_data["password"]}
+        response = self.client.post(self.login_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Access Token", response.data)
+        self.assertIn("Refresh Token", response.data)
 
+    def test_login_invalid_password(self):
+        data = {"username": self.user.email, "password": "WrongPass123"}
+        response = self.client.post(self.login_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Error", response.data)
 
+    def test_get_profile_authenticated(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["email"], self.user.email)
 
-    def test_email(self):
-        R_data = {
-            'name': 'kevin',
-            'email': 'kevin',
-            'phone_number': '1234',
-            'password': '123456789kevin',
-            'confirm_password': '123456789kevin',
-        }
-        T_data = {
-            'name': 'amir',
-            'email': 'amir@mail.com',
-            'phone_number': '123',
-            'password': '123456789amir',
-            'confirm_password': '123456789amir',
-        }
-
-        response = self.client.post('/user/register/', data= R_data)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(len(usrs), 0)
-
-        response = self.client.post('/user/register/', data=T_data)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(usrs), 1)
-
-
-
-    def test_existing_email_or_phone_number(self):
-        data1 = {
-            'name': 'kevin',
-            'email': 'kevin@mail.com',
-            'phone_number': '1234',
-            'password': '123456789kevin',
-            'confirm_password': '123456789kevin',
-        }
-        # Email is existing
-        data2 = {
-            'name': 'amir',
-            'email': 'kevin@mail.com',
-            'phone_number': '12345',
-            'password': '123456789amir',
-            'confirm_password': '123456789amir',
-        }
-        # Phone_number is existing
-        data3 = {
-            'name': 'amir',
-            'email': 'amir@mail.com',
-            'phone_number': '1234',
-            'password': '123456789amir',
-            'confirm_password': '123456789amir',
-        }
-
-        response = self.client.post('/user/register/', data=data1)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(usrs), 1)
-
-        response = self.client.post('/user/register/', data=data2)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(len(usrs), 1)
-
-        response = self.client.post('/user/register/', data=data3)
-        usrs = CustomUser.objects.all()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(len(usrs), 1)
-
-    def test_return_tokens(self):
-        data = {
-            'name': 'amir',
-            'email': 'amir@mail.com',
-            'phone_number': '123',
-            'password': '123456789amir',
-            'confirm_password': '123456789amir',
-        }
-
-        response = self.client.post('/user/register/', data=data)
-        string_data = response.content.decode('utf-8')
-        self.assertTrue('Access Token' in string_data)
-        self.assertTrue('Refresh Token' in string_data)
+    def test_get_profile_unauthenticated(self):
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
