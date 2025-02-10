@@ -66,7 +66,7 @@ The project provides the following API endpoints:
 - POST /accounts/password/forget/verify/ - Verify OPT for forget password
 - POST /accounts/password/reset/ - Set new password
 - 
-- Get /accounts/profile/ - Get user details
+- GET /accounts/profile/ - Get user details
 - PATCH /accounts/profile/ - Update user information
 - POST /accounts/profile/password-reset/ - Change password in profile
 
