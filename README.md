@@ -33,17 +33,13 @@ Ensure you have the following installed:
    python -m venv venv
    source venv/bin/activate  # On Windows use venv\Scripts\activate
    3. Install dependencies:
-   sh
-   pip install -r requirements.txt
+            pip install -r requirements.txt
    4. Apply migrations:
-   sh
-   python manage.py migrate
+            python manage.py migrate
    5. Create a superuser:
-   sh
-   python manage.py createsuperuser
+            python manage.py createsuperuser
    6. Run the server:
-   sh
-   python manage.py runserver
+            python manage.py runserver
    ```
 
 ## API Endpoints
