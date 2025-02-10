@@ -71,10 +71,10 @@ class VerifyRegisterOTPView(APIView):
 class RegisterView(APIView):
     def post(self, request):
         ser_data = RegisterSerializer(data= request.data)
-
         if ser_data.is_valid():
-            if ( get_object_or_404(EmailOTP, email=ser_data.validated_data['email']) != None and
-                 get_object_or_404(EmailOTP, email=ser_data.validated_data['email']).is_valid()):
+
+            if ( EmailOTP.objects.filter(email=ser_data.validated_data['email']).first() != None and
+                 EmailOTP.objects.filter(email=ser_data.validated_data['email']).first().is_valid()):
                 return Response(data= {
                     'Message': 'Email already send it please wait !'
                 }, status=status.HTTP_400_BAD_REQUEST)
@@ -208,7 +208,6 @@ class RefreshView(APIView):
             return Response({
                 "Access Token": str(refresh.access_token),
                 "Refresh Token": str(refresh),
-
             })
         except Exception:
             return Response({"Error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -241,19 +240,20 @@ class PasswordResetView(APIView):
                     'Error': 'Incorrect credentials',
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            user.set_password(ser_data.validated_data['new_password'])
 
-            user.save()
 
             refresh_token = request.data.get('refresh')
-            if refresh_token:
-                try:
-                    token = RefreshToken(refresh_token)
-                    token.blacklist()
-                except Exception:
-                    return Response({"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+            if refresh_token == None:
+                return Response({"error": "enter refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                token = RefreshToken(refresh_token)
+                print(token)
+                token.blacklist()
+            except Exception:
+                return Response({"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
-
+            user.set_password(ser_data.validated_data['new_password'])
+            user.save()
             return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
 

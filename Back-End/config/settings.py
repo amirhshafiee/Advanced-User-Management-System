@@ -138,7 +138,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -149,7 +149,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 # for email functionality
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'amirshafiee266@gmail.com'
-EMAIL_HOST_PASSWORD = 'apvqkfzztmetropi'
+EMAIL_HOST_USER = ...
+EMAIL_HOST_PASSWORD = ...
 
 EMAIL_USE_TLS = True

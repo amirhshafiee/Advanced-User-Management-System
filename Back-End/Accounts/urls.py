@@ -6,6 +6,7 @@ app_name = 'user-page'
 urlpatterns = [
 
     path('register/', views.RegisterView.as_view(), name='register-page'),
+    path('register/sent-otp-agin/', views.SendOTPAgainView.as_view(), name='sent-otp-agin-page'),
     path('register/verify-otp/', views.VerifyRegisterOTPView.as_view(), name='verify-otp-page'),
 
     path('login/', views.LoginView.as_view(), name='login-page'),
