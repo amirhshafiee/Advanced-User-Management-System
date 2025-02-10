@@ -52,16 +52,29 @@ The project provides the following API endpoints:
 
 ### Authentication
 
-- POST /api/auth/register/ - Register a new user
-- POST /api/auth/login/ - Login and obtain JWT
-- POST /api/auth/logout/ - Logout user
+- POST /accounts/register/ - Register a new user
+- POST /accounts/register/sent-otp-agin/ - Send OTP again
+- POST /accounts/register/verify-otp/ - Verify OTP
+- 
+- POST /accounts/login/ - Login user
+- POST /accounts/login/refresh/ - Send new access token with refresh token
+- 
+- POST /accounts/logout/ - Logout user
+- 
+- POST /accounts/password/forget/ - Forget password
+- POST /accounts/password/forget/verify/ - Verify OPT for forget password
+- POST /accounts/password/reset/ - Set new password
+- 
+- Get /accounts/profile/ - Get user details
+- PATCH /accounts/profile/ - Update user information
+- POST /accounts/profile/password-reset/ - Change password in profile
 
 ### User Management
 
-- GET /api/users/ - Get a list of users (admin only)
-- GET /api/users/<id>/ - Get user details
-- PUT /api/users/<id>/ - Update user information
-- DELETE /api/users/<id>/ - Delete user
+- GET /admin/users/ - Get a list of users (admin only)
+- GET /admin/users/<str:email>/ - Get user details
+- PATCH /admin/users/<str:email>/ - Update user information
+- GET /admin/actions/ - Get list of users actions
 
 ## Configuration
 
@@ -73,8 +86,8 @@ This project is licensed under the MIT License.
 
 ## Contributors
 
-- [Your Name]
+- Amir Hosien
 
 ## Contact
 
-For any inquiries, feel free to reach out at [your-email\@example.com].
+For any inquiries, feel free to reach out at amirshafiee266@yahoo.com.
