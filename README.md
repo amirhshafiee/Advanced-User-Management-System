@@ -30,14 +30,19 @@ Ensure you have the following installed:
    
 2. Create and activate a virtual environment:
    ```sh
-   python -m venv venv
-   source venv/bin/activate  # On Windows use venv\Scripts\activate
+   1. python -m venv venv
+
+   2. source venv/bin/activate  # On Windows use venv\Scripts\activate
+
    3. Install dependencies:
             pip install -r requirements.txt
+
    4. Apply migrations:
             python manage.py migrate
+
    5. Create a superuser:
             python manage.py createsuperuser
+
    6. Run the server:
             python manage.py runserver
    ```
